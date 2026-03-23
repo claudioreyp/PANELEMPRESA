@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Empresa</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- PANTALLA DE LOGIN -->
+    <div id="loginScreen" class="login-wrapper">
+        <div class="login-card glass">
+            <div class="login-header">
+                <h2><i class="fa-solid fa-lock"></i> Acceso Restringido</h2>
+                <p>Ingresa tus credenciales para administrar</p>
+            </div>
+            <form id="loginForm">
+                <div class="input-group">
+                    <label>Usuario</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-user"></i>
+                        <input type="text" id="loginUser" placeholder="Usuario" required autocomplete="off">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Contraseña</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-key"></i>
+                        <input type="password" id="loginPass" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn login-btn">Ingresar al Panel <i class="fa-solid fa-arrow-right"></i></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- PANEL PRINCIPAL (Oculto por defecto) -->
+    <div class="container" id="mainDashboard" style="display: none;">
+        <header>
+            <div class="header-titles">
+                <h1>Panel Empresa <span>/ Administración</span></h1>
+                <p>Gestión centralizada de negocios e inquilinos</p>
+            </div>
+            <button id="btnInitDB" class="action-btn outline-btn" title="Inicializar la tabla en base de datos remotamente"><i class="fa-solid fa-server"></i> Conectar API</button>
+        </header>
+
+        <section class="form-section glass">
+            <h2><i class="fa-solid fa-building"></i> Crear Nuevo Negocio</h2>
+            <form id="formNegocio">
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="nombre">Nombre del Negocio</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-briefcase"></i>
+                            <input type="text" id="nombre" name="nombre" placeholder="Ej. Agencia Alfa" required autocomplete="off">
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="contrasena">Contraseña Temporal</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-key"></i>
+                            <input type="text" id="contrasena" name="contrasena" placeholder="Autogenerada" required readonly>
+                            <button type="button" id="btnGenerarPass" class="icon-btn" title="Regenerar"><i class="fa-solid fa-arrows-rotate"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="plan">Plan Asignado</label>
+                        <div class="input-wrapper custom-select">
+                            <i class="fa-solid fa-gem"></i>
+                            <select id="plan" name="plan" required>
+                                <option value="" disabled selected>Seleccione un plan</option>
+                                <option value="Básico">Básico</option>
+                                <option value="PRO">PRO</option>
+                                <option value="SuperPRO">SuperPRO</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="estatus">Estatus Inicial</label>
+                        <div class="input-wrapper custom-select">
+                            <i class="fa-solid fa-toggle-on"></i>
+                            <select id="estatus" name="estatus" required>
+                                <option value="Activo">Activo</option>
+                                <option value="Suspendido">Suspendido</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="submit-btn"><i class="fa-solid fa-plus"></i> Registrar Negocio</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="table-section glass">
+            <div class="table-header">
+                <h2><i class="fa-solid fa-list-check"></i> Negocios Registrados</h2>
+                <div class="api-status">
+                    <div id="statusIndicator" class="indicator offline"></div>
+                    <span id="statusText">Esperando conexión API...</span>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table id="negociosTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Negocio</th>
+                            <th>Contraseña</th>
+                            <th>Plan</th>
+                            <th>Estatus</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Filas se llenan dinámicamente -->
+                    </tbody>
+                </table>
+                <div id="emptyState" class="empty-state">
+                    <i class="fa-solid fa-folder-open empty-icon"></i>
+                    <p>No hay negocios registrados o la base de datos está vacía.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal glass">
+            <h3>Actualizar Estatus/Plan</h3>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="input-group">
+                    <label>Negocio</label>
+                    <input type="text" id="editNombre" readonly disabled class="disabled-input">
+                </div>
+                <div class="input-group">
+                    <label>Nuevo Plan</label>
+                    <select id="editPlan">
+                        <option value="Básico">Básico</option>
+                        <option value="PRO">PRO</option>
+                        <option value="SuperPRO">SuperPRO</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Nuevo Estatus</label>
+                    <select id="editEstatus">
+                        <option value="Activo">Activo</option>
+                        <option value="Suspendido">Suspendido</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="closeModal" class="cancel-btn">Cancelar</button>
+                    <button type="submit" class="submit-btn">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notifications Hub -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
