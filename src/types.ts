@@ -67,6 +67,35 @@ export type IntegrationCredential = {
   token?: string;
 };
 
+export type IntegrationEndpoint = {
+  method: "GET" | "POST" | "PATCH";
+  url: string;
+};
+
+export type RestaurantOnboardingResult = {
+  business: Business;
+  branch: Branch;
+  owner_access: {
+    user_id: string;
+    email: string;
+    full_name: string;
+    role: "owner";
+    status: "active";
+    business_id: number;
+    branch_id: null;
+  };
+  credential: IntegrationCredential & { token: string };
+  n8n: {
+    api_base_url: string;
+    business_id: number;
+    branch_id: number;
+    authentication: "bearer";
+    write_idempotency_header: "Idempotency-Key";
+    workflow_template: string;
+    endpoints: Record<string, IntegrationEndpoint>;
+  };
+};
+
 export type BusinessOverview = {
   business: Business;
   branches: number;
