@@ -1,4 +1,4 @@
-import type { RestaurantOnboardingResult } from "../types";
+import type { IntegrationPackage } from "../types";
 
 export function slugifyName(value: string): string {
   return value
@@ -52,32 +52,15 @@ export function buildRestaurantAccessPackage(
   ].join("\n");
 }
 
-export function buildN8nEnvironment(result: RestaurantOnboardingResult): string {
-  return [
-    `ESCALAR_POS_API_BASE=${result.n8n.api_base_url}`,
-    `ESCALAR_POS_API_TOKEN=${result.credential.token}`,
-    `ESCALAR_BUSINESS_ID=${result.n8n.business_id}`,
-    `ESCALAR_BRANCH_ID=${result.n8n.branch_id}`,
-  ].join("\n");
-}
-
-export function buildN8nPackage(result: RestaurantOnboardingResult): string {
+export function buildIntegrationPackage(integration: IntegrationPackage, token?: string): string {
   return JSON.stringify(
     {
-      environment: {
-        ESCALAR_POS_API_BASE: result.n8n.api_base_url,
-        ESCALAR_POS_API_TOKEN: result.credential.token,
-        ESCALAR_BUSINESS_ID: String(result.n8n.business_id),
-        ESCALAR_BRANCH_ID: String(result.n8n.branch_id),
-      },
+      ...integration,
       authentication: {
-        type: result.n8n.authentication,
-        header: "Authorization",
-        value: `Bearer ${result.credential.token}`,
-        write_idempotency_header: result.n8n.write_idempotency_header,
+        type: integration.authentication,
+        header: integration.authorization_header,
+        value: token ? `Bearer ${token}` : "Bearer <TOKEN_PRIVADO>",
       },
-      scopes: result.credential.scopes,
-      endpoints: result.n8n.endpoints,
     },
     null,
     2,

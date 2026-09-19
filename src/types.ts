@@ -45,7 +45,10 @@ export type Branch = {
   plin_number: string | null;
   payment_recipient_name: string | null;
   maps_url: string | null;
-  yape_qr_storage_path: string | null;
+  yape_qr_storage_path?: string | null;
+  yape_qr_configured?: boolean;
+  menu_card_configured?: boolean;
+  agent_context_notes?: string | null;
   active: boolean;
   delivery_enabled: boolean;
   takeaway_enabled: boolean;
@@ -70,6 +73,18 @@ export type IntegrationCredential = {
 export type IntegrationEndpoint = {
   method: "GET" | "POST" | "PATCH";
   url: string;
+  scope: string;
+};
+
+export type IntegrationPackage = {
+  api_base_url: string;
+  business_id: number;
+  branch_id: number;
+  authentication: "bearer";
+  authorization_header: "Authorization";
+  write_idempotency_header: "Idempotency-Key";
+  scopes: string[];
+  endpoints: Record<string, IntegrationEndpoint>;
 };
 
 export type RestaurantOnboardingResult = {
@@ -85,15 +100,7 @@ export type RestaurantOnboardingResult = {
     branch_id: null;
   };
   credential: IntegrationCredential & { token: string };
-  n8n: {
-    api_base_url: string;
-    business_id: number;
-    branch_id: number;
-    authentication: "bearer";
-    write_idempotency_header: "Idempotency-Key";
-    workflow_template: string;
-    endpoints: Record<string, IntegrationEndpoint>;
-  };
+  integration: IntegrationPackage;
 };
 
 export type BusinessOverview = {
@@ -130,6 +137,11 @@ export type Membership = {
   active: boolean;
   created_at: string;
   updated_at: string;
+  can_reset_password?: boolean;
+  password_security_version?: number;
+  password_reset_required?: boolean;
+  password_reset_operation_id?: string | null;
+  identity_business_count?: number;
 };
 
 export type AuditEvent = {

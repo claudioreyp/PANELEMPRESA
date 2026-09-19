@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildN8nEnvironment,
-  buildN8nPackage,
+  buildIntegrationPackage,
   buildRestaurantAccessPackage,
   generateSecurePassword,
   slugifyName,
@@ -13,13 +12,14 @@ const result = {
   branch: { id: 34 },
   owner_access: {},
   credential: { token: "esc_live_example.secret", scopes: ["menu:read", "orders:write"] },
-  n8n: {
+  integration: {
     api_base_url: "https://api.escalar.test/api/v1",
     business_id: 12,
     branch_id: 34,
     authentication: "bearer",
     write_idempotency_header: "Idempotency-Key",
-    workflow_template: "Agente de POS Propio",
+    authorization_header: "Authorization",
+    scopes: ["menu:read", "orders:write"],
     endpoints: {
       menu: { method: "GET", url: "https://api.escalar.test/api/v1/integrations/context/menu" },
     },
@@ -31,11 +31,14 @@ describe("restaurant onboarding helpers", () => {
     expect(slugifyName("Pizzería El Ñato - Lima")).toBe("pizzeria-el-nato-lima");
   });
 
-  it("builds a complete one-time n8n package", () => {
-    expect(buildN8nEnvironment(result)).toContain("ESCALAR_POS_API_TOKEN=esc_live_example.secret");
-    const packageData = JSON.parse(buildN8nPackage(result));
+  it("builds a generic one-time API package", () => {
+    const packageData = JSON.parse(buildIntegrationPackage(result.integration, result.credential.token));
     expect(packageData.authentication.value).toBe("Bearer esc_live_example.secret");
     expect(packageData.endpoints.menu.method).toBe("GET");
+    expect(packageData.business_id).toBe(12);
+    expect(packageData.branch_id).toBe(34);
+    expect(packageData).not.toHaveProperty("environment");
+    expect(buildIntegrationPackage(result.integration)).not.toContain(result.credential.token);
   });
 
   it("generates strong passwords for new restaurant users", () => {

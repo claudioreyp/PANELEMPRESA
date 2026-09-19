@@ -7,12 +7,19 @@ export function useResource<T>(loader: () => Promise<T>, dependencies: unknown[]
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const request = useRef(0);
   const refresh = useCallback(async () => {
+    const version = ++request.current;
     setLoading(true);
-    try { setData(await loaderRef.current()); setError(null); }
-    catch (caught) { setError(caught instanceof Error ? caught.message : "No se pudo cargar la información."); }
-    finally { setLoading(false); }
+    try { const next = await loaderRef.current(); if (version === request.current) { setData(next); setError(null); } }
+    catch (caught) { if (version === request.current) setError(caught instanceof Error ? caught.message : "No se pudo cargar la información."); }
+    finally { if (version === request.current) setLoading(false); }
   }, []);
-  useEffect(() => { void refresh(); }, [dependencyKey, refresh]);
+  useEffect(() => {
+    const requests = request;
+    setData(null);
+    void refresh();
+    return () => { requests.current++; };
+  }, [dependencyKey, refresh]);
   return { data, loading, error, refresh, setData };
 }

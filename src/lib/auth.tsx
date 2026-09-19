@@ -2,7 +2,9 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { User } from "@supabase/supabase-js";
 import { api } from "./api";
 import { supabase } from "./supabase";
+import { CAN_USE_DEV_AUTH } from "./runtime";
 import type { AdminIdentity } from "../types";
+import { friendlyAuthError } from "./auth-errors";
 
 type AuthState = {
   user: User | { id: string; email: string } | null;
@@ -22,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [identity, setIdentity] = useState<AdminIdentity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const canUseDevMode = Boolean(import.meta.env.DEV && import.meta.env.VITE_DEV_AUTH_TOKEN);
+  const canUseDevMode = CAN_USE_DEV_AUTH;
 
   async function verify(nextUser: AuthState["user"]) {
     if (!nextUser) {
@@ -54,8 +56,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signIn(email: string, password: string) {
     if (!supabase) throw new Error("Supabase Auth no está configurado.");
     setError(null);
-    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-    if (loginError) throw loginError;
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email, password }).catch((caught: unknown) => {
+      throw new Error(friendlyAuthError(caught));
+    });
+    if (loginError) throw new Error(friendlyAuthError(loginError));
     localStorage.setItem("impulsa.adminAuthMode", "supabase");
     await verify(data.user);
   }

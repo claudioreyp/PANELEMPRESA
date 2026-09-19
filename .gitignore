@@ -5,3 +5,7 @@ dist/
 playwright-report/
 test-results/
 *.log
+.env.*
+!.env.example
+.vercel/
+*.tsbuildinfo

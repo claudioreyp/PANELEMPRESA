@@ -64,6 +64,11 @@
 .secret-once { display:grid;gap:9px;padding:16px;border:1px solid #d8bf7e;border-radius:14px;background:#fff8e5; }
 .secret-once code { padding:10px;overflow-wrap:anywhere;border-radius:9px;background:#2a302d;color:#fff; }
 .onboarding-modal { width:min(100%,780px); }
+.password-reset-modal > header { gap:16px;margin-bottom:24px; }
+.password-reset-modal p { line-height:1.6;overflow-wrap:anywhere; }
+.password-reset-modal .form-stack { gap:18px; }
+.password-reset-modal .button { white-space:normal; }
+.password-reset-modal input { min-width:0; }
 .onboarding-modal > header p,.onboarding-result-modal > header p { color:var(--muted);max-width:650px;line-height:1.5; }
 .onboarding-result-modal { width:min(100%,1080px);display:grid;gap:18px; }
 .onboarding-summary { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px; }
@@ -89,12 +94,12 @@
 .access-credentials-grid article { display:grid;grid-template-columns:1fr auto;gap:7px;padding:12px;border:1px solid var(--line);border-radius:11px;background:#fff;min-width:0; }
 .access-credentials-grid article small { grid-column:1/-1;color:var(--muted);font-weight:700; }
 .access-credentials-grid article code { overflow-wrap:anywhere;align-self:center; }
-.n8n-copy-block,.endpoint-package,.development-invite { display:grid;gap:12px;padding:17px;border:1px solid var(--line);border-radius:16px;background:#fffefa; }
-.n8n-copy-block > header,.endpoint-package > header { display:flex;justify-content:space-between;align-items:flex-start;gap:12px; }
-.n8n-copy-block h3,.n8n-copy-block p,.endpoint-package h3,.endpoint-package p { margin:0; }
-.n8n-copy-block p,.endpoint-package p { margin-top:4px;color:var(--muted);font-size:.78rem; }
-.n8n-copy-block > header > div:last-child { display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end; }
-.n8n-copy-block pre { margin:0;padding:14px;border-radius:12px;background:var(--deep);color:#e9f3ed;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.75rem;line-height:1.7; }
+.integration-copy-block,.endpoint-package,.development-invite { display:grid;gap:12px;padding:17px;border:1px solid var(--line);border-radius:16px;background:#fffefa; }
+.integration-copy-block > header,.endpoint-package > header { display:flex;justify-content:space-between;align-items:flex-start;gap:12px; }
+.integration-copy-block h3,.integration-copy-block p,.endpoint-package h3,.endpoint-package p { margin:0; }
+.integration-copy-block p,.endpoint-package p { margin-top:4px;color:var(--muted);font-size:.78rem; }
+.integration-copy-block > header > div:last-child { display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end; }
+.integration-copy-block pre { margin:0;padding:14px;border-radius:12px;background:var(--deep);color:#e9f3ed;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.75rem;line-height:1.7; }
 .endpoint-package > header > span { padding:5px 9px;border-radius:999px;background:var(--mint);color:var(--green);font-size:.7rem;font-weight:800;white-space:nowrap; }
 .endpoint-package > div { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px; }
 .endpoint-package article { display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:9px;padding:10px;border:1px solid var(--line);border-radius:11px;background:var(--paper); }
@@ -135,4 +140,4 @@
 .admin-file-drop input { position:absolute;inset:0;width:100%;opacity:0;cursor:pointer; }
 @media (max-width:1100px) { .metrics-grid { grid-template-columns:repeat(2,1fr); } .business-cards { grid-template-columns:repeat(2,1fr); } .overview-strip { grid-template-columns:repeat(3,1fr); } .detail-grid { grid-template-columns:1fr; } }
 @media (max-width:1100px) { .integration-layout { grid-template-columns:1fr; } }
-@media (max-width:760px) { .admin-shell { display:block; } .admin-sidebar { position:fixed;left:0;transform:translateX(-105%);width:min(86vw,290px);transition:.22s; } .admin-sidebar.open { transform:none; } .close-menu { display:block; } .menu-scrim { display:block;position:fixed;inset:0;border:0;background:rgba(0,0,0,.4);z-index:20; } .mobile-bar { display:flex;align-items:center;gap:10px;padding:13px 18px;background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:15; } .mobile-bar button { border:0;background:none; } .admin-workspace main { padding:24px 17px; } .page-header { display:grid;align-items:start; } .metrics-grid,.business-cards,.overview-strip,.form-grid,.onboarding-summary,.endpoint-package > div,.access-credentials-grid { grid-template-columns:1fr; } .filter-bar { display:grid; } .module-checks,.scope-grid { grid-template-columns:repeat(1,1fr); } .admin-login { grid-template-columns:1fr; } .login-message { min-height:42vh;padding:30px; } .login-message h1 { margin-top:6vh; } .security-stripe { display:none; } .login-access { padding:20px; } .audit-timeline header { display:grid; } .integration-column { padding:13px; } .n8n-copy-block > header,.endpoint-package > header,.pos-access-package > header { display:grid; } .n8n-copy-block > header > div:last-child { justify-content:stretch; } .n8n-copy-block .button,.pos-access-package > header .button { width:100%; } }
+@media (max-width:760px) { .admin-shell { display:block; } .admin-sidebar { position:fixed;left:0;transform:translateX(-105%);width:min(86vw,290px);transition:.22s; } .admin-sidebar.open { transform:none; } .close-menu { display:block; } .menu-scrim { display:block;position:fixed;inset:0;border:0;background:rgba(0,0,0,.4);z-index:20; } .mobile-bar { display:flex;align-items:center;gap:10px;padding:13px 18px;background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:15; } .mobile-bar button { border:0;background:none; } .admin-workspace main { padding:24px 17px; } .page-header { display:grid;align-items:start; } .metrics-grid,.business-cards,.overview-strip,.form-grid,.onboarding-summary,.endpoint-package > div,.access-credentials-grid { grid-template-columns:1fr; } .filter-bar { display:grid; } .module-checks,.scope-grid { grid-template-columns:repeat(1,1fr); } .admin-login { grid-template-columns:1fr; } .login-message { min-height:42vh;padding:30px; } .login-message h1 { margin-top:6vh; } .security-stripe { display:none; } .login-access { padding:20px; } .audit-timeline header { display:grid; } .integration-column { padding:13px; } .integration-copy-block > header,.endpoint-package > header,.pos-access-package > header { display:grid; } .integration-copy-block > header > div:last-child { justify-content:stretch; } .integration-copy-block .button,.pos-access-package > header .button { width:100%; } }

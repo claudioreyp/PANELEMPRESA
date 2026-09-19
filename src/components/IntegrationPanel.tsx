@@ -1,8 +1,9 @@
 import { Ban, Bot, Check, Copy, KeyRound, MapPin, RotateCw, Save, Upload } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api";
 import { useResource } from "../lib/hooks";
-import type { Branch, IntegrationCredential } from "../types";
+import type { Branch, IntegrationCredential, IntegrationPackage } from "../types";
+import { IntegrationPackageView } from "./IntegrationPackageView";
 import { Empty, ErrorBox, Loading, Status } from "./ui";
 
 const availableScopes = [
@@ -26,7 +27,7 @@ export function IntegrationPanel({ branches, onBranchUpdated }: { branches: Bran
 
   return <section className="panel integration-panel">
     <header>
-      <div><span className="eyebrow">Escalar AI</span><h2>Integración del agente</h2><p>Credenciales, ubicación y pagos que usará el workflow de esta sede.</p></div>
+      <div><span className="eyebrow">Escalar AI</span><h2>Integración del agente</h2><p>Credenciales, ubicación y pagos disponibles mediante las APIs de esta sede.</p></div>
       <Bot />
     </header>
     <label className="branch-selector">Sucursal<select value={selected.id} onChange={(event) => setSelectedId(Number(event.target.value))}>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
@@ -36,6 +37,9 @@ export function IntegrationPanel({ branches, onBranchUpdated }: { branches: Bran
 
 function BranchIntegration({ branch, onBranchUpdated }: { branch: Branch; onBranchUpdated: () => Promise<void> }) {
   const credentials = useResource(() => api<IntegrationCredential[]>(`/admin/integration-credentials?branch_id=${branch.id}`), [branch.id]);
+  const actionLock = useRef(false);
+  const packageRequest = useRef(0);
+  const [integration, setIntegration] = useState<IntegrationPackage | null>(null);
   const [name, setName] = useState("Agente WhatsApp principal");
   const [scopes, setScopes] = useState<string[]>(defaultScopes);
   const [secret, setSecret] = useState<string | null>(null);
@@ -52,13 +56,33 @@ function BranchIntegration({ branch, onBranchUpdated }: { branch: Branch; onBran
     payment_recipient_name: branch.payment_recipient_name || "",
     delivery_fee: branch.delivery_fee || 0,
   });
+  useEffect(() => {
+    const requests = packageRequest;
+    return () => { requests.current++; };
+  }, []);
 
   function toggleScope(scope: string) {
     setScopes((current) => current.includes(scope) ? current.filter((item) => item !== scope) : [...current, scope]);
   }
 
+  async function showPackage(item: IntegrationCredential) {
+    const request = ++packageRequest.current;
+    setError(null);
+    try {
+      const result = await api<{ integration: IntegrationPackage }>(`/admin/branches/${branch.id}/integration?credential_id=${item.id}`);
+      if (request !== packageRequest.current) return;
+      setIntegration(result.integration);
+    } catch (caught) { if (request === packageRequest.current) setError(caught instanceof Error ? caught.message : "No se pudo consultar las APIs"); }
+  }
+
+  async function copy(value: string, message: string) {
+    try { await navigator.clipboard.writeText(value); setMessage(message); }
+    catch { setError("No se pudo copiar. Selecciona el dato y cópialo manualmente."); }
+  }
+
   async function createCredential() {
-    if (!name.trim() || scopes.length === 0) return;
+    if (actionLock.current || !name.trim() || scopes.length === 0) return;
+    actionLock.current = true;
     setWorking(true); setError(null); setMessage(null);
     try {
       const result = await api<IntegrationCredential>("/admin/integration-credentials", {
@@ -69,33 +93,39 @@ function BranchIntegration({ branch, onBranchUpdated }: { branch: Branch; onBran
       setMessage("Credencial creada. Guarda el secreto ahora: no volverá a mostrarse.");
       await credentials.refresh();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "No se pudo crear la credencial"); }
-    finally { setWorking(false); }
+    finally { actionLock.current = false; setWorking(false); }
   }
 
   async function rotateCredential(item: IntegrationCredential) {
+    if (actionLock.current) return;
     if (!window.confirm(`¿Rotar la credencial ${item.name}? El token anterior dejará de funcionar inmediatamente.`)) return;
+    actionLock.current = true;
     setWorking(true); setError(null); setMessage(null);
     try {
       const result = await api<IntegrationCredential>(`/admin/integration-credentials/${item.id}/rotate`, { method: "POST" });
       setSecret(result.token || null);
-      setMessage("Credencial rotada. Actualiza n8n con este secreto antes de cerrar esta pantalla.");
+      setMessage("Credencial rotada. Actualiza tu integración con este secreto antes de cerrar esta pantalla.");
       await credentials.refresh();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "No se pudo rotar la credencial"); }
-    finally { setWorking(false); }
+    finally { actionLock.current = false; setWorking(false); }
   }
 
   async function revokeCredential(item: IntegrationCredential) {
+    if (actionLock.current) return;
     if (!window.confirm(`¿Revocar ${item.name}? El agente perderá acceso a esta sucursal.`)) return;
+    actionLock.current = true;
     setWorking(true); setError(null); setMessage(null);
     try {
       await api(`/admin/integration-credentials/${item.id}/revoke`, { method: "POST" });
       setMessage("Credencial revocada y registrada en auditoría.");
       await credentials.refresh();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "No se pudo revocar la credencial"); }
-    finally { setWorking(false); }
+    finally { actionLock.current = false; setWorking(false); }
   }
 
   async function saveBranch() {
+    if (actionLock.current) return;
+    actionLock.current = true;
     setWorking(true); setError(null); setMessage(null);
     try {
       await api(`/branches/${branch.id}`, { method: "PATCH", body: JSON.stringify(branchForm) });
@@ -108,13 +138,12 @@ function BranchIntegration({ branch, onBranchUpdated }: { branch: Branch; onBran
       await onBranchUpdated();
       setMessage("Configuración de la sucursal actualizada.");
     } catch (caught) { setError(caught instanceof Error ? caught.message : "No se pudo guardar la sucursal"); }
-    finally { setWorking(false); }
+    finally { actionLock.current = false; setWorking(false); }
   }
 
   async function copySecret() {
     if (!secret) return;
-    await navigator.clipboard.writeText(secret);
-    setMessage("Secreto copiado. Guárdalo en una credencial segura de n8n.");
+    await copy(secret, "Secreto copiado. Guárdalo en un lugar seguro.");
   }
 
   return <div className="integration-layout">
@@ -128,9 +157,10 @@ function BranchIntegration({ branch, onBranchUpdated }: { branch: Branch; onBran
           <div><strong>{item.name}</strong><code>{item.token_prefix}...</code><small>Último uso: {item.last_used_at ? new Date(item.last_used_at).toLocaleString("es-PE") : "Nunca"}</small></div>
           <Status value={item.active ? "active" : "suspended"} />
           <div className="credential-scopes">{item.scopes.map((scope) => <span key={scope}>{scope}</span>)}</div>
-          <div className="credential-actions"><button title="Rotar credencial" disabled={working} onClick={() => void rotateCredential(item)}><RotateCw /></button>{item.active && <button className="text-danger" title="Revocar credencial" disabled={working} onClick={() => void revokeCredential(item)}><Ban /></button>}</div>
-        </article>) : <Empty title="Sin credenciales" detail="Crea una para conectar la plantilla homologada de n8n." />}
+          <div className="credential-actions"><button disabled={working} onClick={() => void showPackage(item)}>Ver APIs</button><button title="Rotar credencial" disabled={working} onClick={() => void rotateCredential(item)}><RotateCw /></button>{item.active && <button className="text-danger" title="Revocar credencial" disabled={working} onClick={() => void revokeCredential(item)}><Ban /></button>}</div>
+        </article>) : <Empty title="Sin credenciales" detail="Crea una para acceder a las APIs de esta sucursal." />}
       </div>
+      {integration && <IntegrationPackageView integration={integration} copy={copy} />}
       <div className="credential-create">
         <label>Nombre de la credencial<input value={name} onChange={(event) => setName(event.target.value)} /></label>
         <fieldset><legend>Permisos del agente</legend><div className="scope-grid">{availableScopes.map(([scope, label]) => <label key={scope} className={scope === "inventory:write" ? "scope-sensitive" : ""}><input type="checkbox" checked={scopes.includes(scope)} onChange={() => toggleScope(scope)} /><span><strong>{label}</strong><small>{scope}</small></span></label>)}</div></fieldset>
@@ -149,7 +179,7 @@ function BranchIntegration({ branch, onBranchUpdated }: { branch: Branch; onBran
         <label>Número Plin<input value={branchForm.plin_number} onChange={(event) => setBranchForm({ ...branchForm, plin_number: event.target.value })} /></label>
         <label className="wide-field">Titular del pago<input value={branchForm.payment_recipient_name} onChange={(event) => setBranchForm({ ...branchForm, payment_recipient_name: event.target.value })} /></label>
       </div>
-      <label className="admin-file-drop"><Upload /><span><strong>{qrFile?.name || (branch.yape_qr_storage_path ? "QR de Yape configurado" : "Subir QR de Yape")}</strong><small>Imagen privada, máximo 5 MB.</small></span><input type="file" accept="image/*" onChange={(event) => setQrFile(event.target.files?.[0] || null)} /></label>
+      <label className="admin-file-drop"><Upload /><span><strong>{qrFile?.name || (branch.yape_qr_configured || branch.yape_qr_storage_path ? "QR de Yape configurado" : "Subir QR de Yape")}</strong><small>Imagen privada, máximo 5 MB.</small></span><input type="file" accept="image/*" onChange={(event) => setQrFile(event.target.files?.[0] || null)} /></label>
       <button className="button primary" disabled={working} onClick={() => void saveBranch()}><Save /> Guardar contexto del agente</button>
     </div>
   </div>;
