@@ -1,9 +1,10 @@
-import { Ban, Bot, Check, Copy, KeyRound, MapPin, RotateCw, Save, Upload } from "lucide-react";
+import { Ban, Bot, Check, Copy, KeyRound, RotateCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api";
 import { useResource } from "../lib/hooks";
 import type { Branch, IntegrationCredential, IntegrationPackage } from "../types";
 import { IntegrationPackageView } from "./IntegrationPackageView";
+import { AgentContextSummary } from "./AgentContextSummary";
 import { Empty, ErrorBox, Loading, Status } from "./ui";
 
 const availableScopes = [
@@ -19,7 +20,7 @@ const availableScopes = [
 
 const defaultScopes = availableScopes.map(([scope]) => scope).filter((scope) => scope !== "inventory:write");
 
-export function IntegrationPanel({ branches, onBranchUpdated }: { branches: Branch[]; onBranchUpdated: () => Promise<void> }) {
+export function IntegrationPanel({ branches }: { branches: Branch[] }) {
   const [selectedId, setSelectedId] = useState(branches[0]?.id || 0);
   const selected = branches.find((branch) => branch.id === selectedId) || branches[0];
 
@@ -31,11 +32,11 @@ export function IntegrationPanel({ branches, onBranchUpdated }: { branches: Bran
       <Bot />
     </header>
     <label className="branch-selector">Sucursal<select value={selected.id} onChange={(event) => setSelectedId(Number(event.target.value))}>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
-    <BranchIntegration key={selected.id} branch={selected} onBranchUpdated={onBranchUpdated} />
+    <BranchIntegration key={selected.id} branch={selected} />
   </section>;
 }
 
-function BranchIntegration({ branch, onBranchUpdated }: { branch: Branch; onBranchUpdated: () => Promise<void> }) {
+function BranchIntegration({ branch }: { branch: Branch }) {
   const credentials = useResource(() => api<IntegrationCredential[]>(`/admin/integration-credentials?branch_id=${branch.id}`), [branch.id]);
   const actionLock = useRef(false);
   const packageRequest = useRef(0);
@@ -46,16 +47,6 @@ function BranchIntegration({ branch, onBranchUpdated }: { branch: Branch; onBran
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [qrFile, setQrFile] = useState<File | null>(null);
-  const [branchForm, setBranchForm] = useState({
-    address: branch.address || "",
-    phone: branch.phone || "",
-    maps_url: branch.maps_url || "",
-    yape_number: branch.yape_number || "",
-    plin_number: branch.plin_number || "",
-    payment_recipient_name: branch.payment_recipient_name || "",
-    delivery_fee: branch.delivery_fee || 0,
-  });
   useEffect(() => {
     const requests = packageRequest;
     return () => { requests.current++; };
@@ -123,24 +114,6 @@ function BranchIntegration({ branch, onBranchUpdated }: { branch: Branch; onBran
     finally { actionLock.current = false; setWorking(false); }
   }
 
-  async function saveBranch() {
-    if (actionLock.current) return;
-    actionLock.current = true;
-    setWorking(true); setError(null); setMessage(null);
-    try {
-      await api(`/branches/${branch.id}`, { method: "PATCH", body: JSON.stringify(branchForm) });
-      if (qrFile) {
-        const body = new FormData();
-        body.append("file", qrFile);
-        await api(`/branches/${branch.id}/yape-qr`, { method: "POST", body });
-        setQrFile(null);
-      }
-      await onBranchUpdated();
-      setMessage("Configuración de la sucursal actualizada.");
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "No se pudo guardar la sucursal"); }
-    finally { actionLock.current = false; setWorking(false); }
-  }
-
   async function copySecret() {
     if (!secret) return;
     await copy(secret, "Secreto copiado. Guárdalo en un lugar seguro.");
@@ -168,19 +141,6 @@ function BranchIntegration({ branch, onBranchUpdated }: { branch: Branch; onBran
       </div>
     </div>
 
-    <div className="integration-column branch-agent-config">
-      <div className="integration-heading"><MapPin /><div><h3>Contexto que recibirá el agente</h3><p>Información pública del local y datos de cobro, sin exponer secretos administrativos.</p></div></div>
-      <div className="form-grid">
-        <label className="wide-field">Dirección<textarea rows={2} value={branchForm.address} onChange={(event) => setBranchForm({ ...branchForm, address: event.target.value })} /></label>
-        <label>Teléfono<input value={branchForm.phone} onChange={(event) => setBranchForm({ ...branchForm, phone: event.target.value })} /></label>
-        <label>Costo de delivery<input type="number" min="0" step="0.1" value={branchForm.delivery_fee} onChange={(event) => setBranchForm({ ...branchForm, delivery_fee: Number(event.target.value) })} /></label>
-        <label className="wide-field">Google Maps<input type="url" value={branchForm.maps_url} onChange={(event) => setBranchForm({ ...branchForm, maps_url: event.target.value })} placeholder="https://maps.google.com/..." /></label>
-        <label>Número Yape<input value={branchForm.yape_number} onChange={(event) => setBranchForm({ ...branchForm, yape_number: event.target.value })} /></label>
-        <label>Número Plin<input value={branchForm.plin_number} onChange={(event) => setBranchForm({ ...branchForm, plin_number: event.target.value })} /></label>
-        <label className="wide-field">Titular del pago<input value={branchForm.payment_recipient_name} onChange={(event) => setBranchForm({ ...branchForm, payment_recipient_name: event.target.value })} /></label>
-      </div>
-      <label className="admin-file-drop"><Upload /><span><strong>{qrFile?.name || (branch.yape_qr_configured || branch.yape_qr_storage_path ? "QR de Yape configurado" : "Subir QR de Yape")}</strong><small>Imagen privada, máximo 5 MB.</small></span><input type="file" accept="image/*" onChange={(event) => setQrFile(event.target.files?.[0] || null)} /></label>
-      <button className="button primary" disabled={working} onClick={() => void saveBranch()}><Save /> Guardar contexto del agente</button>
-    </div>
+    <AgentContextSummary branchId={branch.id} />
   </div>;
 }

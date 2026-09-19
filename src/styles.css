@@ -133,6 +133,9 @@
 .scope-grid label span { display:grid; }
 .scope-grid .scope-sensitive { border:1px solid #e6b8ad;background:#fff0ec; }
 .branch-agent-config .form-grid { align-items:start; }
+.agent-context-summary { margin:0; display:grid; gap:6px; }
+.agent-context-summary dt { color:var(--muted); margin-top:12px; }
+.agent-context-summary dd { margin:0; overflow-wrap:anywhere; }
 .wide-field { grid-column:1 / -1; }
 .admin-file-drop { position:relative;min-height:90px;padding:14px;display:flex;align-items:center;gap:11px;border:1.5px dashed #aebdb5;border-radius:13px;background:#f4f8f5;cursor:pointer; }
 .admin-file-drop > svg { color:var(--green); }
