@@ -9,3 +9,4 @@ test-results/
 !.env.example
 .vercel/
 *.tsbuildinfo
+.impeccable/review/
