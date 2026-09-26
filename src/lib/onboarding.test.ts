@@ -22,6 +22,8 @@ const result = {
     scopes: ["menu:read", "orders:write"],
     endpoints: {
       menu: { method: "GET", url: "https://api.escalar.test/api/v1/integrations/context/menu" },
+      customer_catalog: { method: "GET", url: "https://api.escalar.test/api/v1/integrations/context/catalog", scope: "menu:read" },
+      preview_order: { method: "POST", url: "https://api.escalar.test/api/v1/integrations/orders/preview", scope: "orders:write" },
     },
   },
 } as unknown as RestaurantOnboardingResult;
@@ -35,6 +37,8 @@ describe("restaurant onboarding helpers", () => {
     const packageData = JSON.parse(buildIntegrationPackage(result.integration, result.credential.token));
     expect(packageData.authentication.value).toBe("Bearer esc_live_example.secret");
     expect(packageData.endpoints.menu.method).toBe("GET");
+    expect(packageData.endpoints.customer_catalog.scope).toBe("menu:read");
+    expect(packageData.endpoints.preview_order.url).toBe("https://api.escalar.test/api/v1/integrations/orders/preview");
     expect(packageData.business_id).toBe(12);
     expect(packageData.branch_id).toBe(34);
     expect(packageData).not.toHaveProperty("environment");
