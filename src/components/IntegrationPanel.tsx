@@ -93,7 +93,7 @@ function BranchIntegration({ branch, businessName }: { branch: Branch; businessN
       {error && <div className="form-error">{error}</div>}
       <div className="credential-list">
         {credentials.loading && !credentials.data ? <Loading label="Consultando credenciales..." /> : credentials.error && !credentials.data ? <ErrorBox message={credentials.error} retry={() => void credentials.refresh()} /> : credentials.data?.length ? credentials.data.map((item) => <article key={item.id}>
-          <div><strong>{item.name}</strong><code>{item.token_prefix}...</code><small>Último uso: {item.last_used_at ? new Date(item.last_used_at).toLocaleString("es-PE") : "Nunca"}</small></div>
+          <div><strong>{item.name}</strong><code>{item.token_prefix}...</code><small>{item.profile === "restaurant_agent" ? "Agente de restaurante" : "Integración general"}</small><small>Último uso: {item.last_used_at ? new Date(item.last_used_at).toLocaleString("es-PE") : "Nunca"}</small></div>
           <Status value={item.active ? "active" : "suspended"} />
           <div className="credential-scopes">{item.scopes.map((scope) => <span key={scope}>{scope}</span>)}</div>
           <div className="credential-actions"><button disabled={working} onClick={() => void showPackage(item)}>Ver APIs</button><button title="Rotar credencial" disabled={working} onClick={() => void rotateCredential(item)}><RotateCw /></button>{item.active && <button className="text-danger" title="Revocar credencial" disabled={working} onClick={() => void revokeCredential(item)}><Ban /></button>}</div>

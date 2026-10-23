@@ -9,7 +9,7 @@ import {
   slugifyName,
 } from "../lib/onboarding";
 import { useResource } from "../lib/hooks";
-import type { Business, RestaurantOnboardingResult } from "../types";
+import type { Business, RestaurantOnboardingResult, IntegrationProfile } from "../types";
 import { IntegrationPackageView } from "../components/IntegrationPackageView";
 import { Empty, ErrorBox, Loading, PageHeader, Status, Toast } from "../components/ui";
 
@@ -18,6 +18,7 @@ const CLIENT_POS_URL = import.meta.env.VITE_CLIENT_POS_URL
   || (import.meta.env.DEV ? "http://localhost:5173" : "https://panelclientes-k8wt.vercel.app");
 
 const initialForm = {
+  integration_profile: "restaurant_agent" as IntegrationProfile,
   name: "",
   slug: "",
   owner_name: "",
@@ -88,6 +89,7 @@ export function BusinessesPage() {
           owner_email: form.owner_email.trim().toLowerCase(),
           owner_password: form.owner_password,
           credential_name: `Integracion - ${form.branch_name.trim()}`,
+          integration_profile: form.integration_profile,
         }),
       });
       setOwnerCredentials({
@@ -174,6 +176,7 @@ export function BusinessesPage() {
           <label>Dirección<input value={form.branch_address} onChange={(event) => setForm({ ...form, branch_address: event.target.value })} /></label>
           <label>Teléfono del local<input value={form.branch_phone} onChange={(event) => setForm({ ...form, branch_phone: event.target.value })} /></label>
         </div></fieldset>
+        <label>Perfil de la conexión<select value={form.integration_profile} disabled={submitting || Boolean(uncertainSlug)} onChange={event => setForm({ ...form, integration_profile: event.target.value as IntegrationProfile })}><option value="restaurant_agent">Agente de restaurante (recomendado)</option><option value="generic">Integración general</option></select></label>
         <p>POS completo incluido. Los permisos de empleados y las modalidades del local se configuran dentro del POS.</p>
         <button className="button primary large" disabled={submitting || Boolean(uncertainSlug)}><Building2 /> {submitting ? "Preparando restaurante..." : "Crear restaurante y APIs"}</button>
         <small>La contraseña viaja cifrada por HTTPS a Supabase Auth y no se guarda en la base del POS. El acceso y el token del agente se mostrarán una sola vez.</small>

@@ -77,3 +77,21 @@ it("keeps the token if routes fail and clears it explicitly when closing", async
   fireEvent.click(screen.getByRole("button", { name: "Cerrar resultado" }));
   expect(screen.queryByText(issued.token)).not.toBeInTheDocument();
 });
+
+it("defaults new agent credentials to consumer scope without operational event access", async () => {
+  mocked.mockResolvedValueOnce(issued).mockResolvedValueOnce({ integration });
+  open(); create(); await screen.findByText(issued.token);
+  const body = JSON.parse(mocked.mock.calls[0][1]!.body as string);
+  expect(body.profile).toBe("restaurant_agent");
+  expect(body.scopes).toEqual(["menu:read", "orders:read", "orders:write", "payments:write", "agent:state", "agent:attention"]);
+});
+
+it("lets an administrator deliberately create a generic integration with its prior scopes", async () => {
+  mocked.mockResolvedValueOnce(issued).mockResolvedValueOnce({ integration });
+  open(); fireEvent.change(screen.getByLabelText("Perfil de integración"), { target: { value: "generic" } }); create();
+  await screen.findByText(issued.token);
+  const body = JSON.parse(mocked.mock.calls[0][1]!.body as string);
+  expect(body.profile).toBe("generic");
+  expect(body.scopes).toContain("events:read");
+  expect(body.scopes).not.toContain("agent:state");
+});

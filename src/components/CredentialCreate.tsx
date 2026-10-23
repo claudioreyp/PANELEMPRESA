@@ -1,7 +1,7 @@
 import { Copy, KeyRound, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "../lib/api";
-import type { Branch, IntegrationCredential, IntegrationPackage } from "../types";
+import type { Branch, IntegrationCredential, IntegrationPackage, IntegrationProfile } from "../types";
 import { IntegrationPackageView } from "./IntegrationPackageView";
 
 const scopes = [
@@ -9,6 +9,11 @@ const scopes = [
   ["orders:read", "Consulta de pedidos"], ["orders:write", "Crear y actualizar pedidos"],
   ["payments:write", "Registrar comprobantes"], ["reservations:write", "Crear reservas"],
   ["events:read", "Notificaciones al cliente"], ["inventory:write", "Ajustes de inventario"],
+] as const;
+const agentScopes = [
+  ["menu:read", "Carta, precios y disponibilidad"], ["orders:read", "Pedidos del consumidor"],
+  ["orders:write", "Pedidos y cambios permitidos"], ["payments:write", "Registrar comprobantes"],
+  ["agent:state", "Continuidad de la conversación"], ["agent:attention", "Solicitar atención humana"],
 ] as const;
 type Issuance = IntegrationCredential & { operation_id: string; secret_available: boolean };
 type Operation = { key: string; body: string; status: "unknown" | "not_found" };
@@ -18,7 +23,8 @@ export function CredentialCreate({ branch, businessName, onCreated }: {
   branch: Branch; businessName: string; onCreated: () => void;
 }) {
   const [name, setName] = useState("Agente WhatsApp adicional");
-  const [selected, setSelected] = useState<string[]>(scopes.map(([scope]) => scope).filter(scope => scope !== "inventory:write"));
+  const [profile, setProfile] = useState<IntegrationProfile>("restaurant_agent");
+  const [selected, setSelected] = useState<string[]>(agentScopes.map(([scope]) => scope));
   const [busy, setBusy] = useState(false);
   const [operation, setOperation] = useState<Operation | null>(null);
   const [issued, setIssued] = useState<Issuance | null>(null);
@@ -49,7 +55,7 @@ export function CredentialCreate({ branch, businessName, onCreated }: {
     if (locked.current || issued || (!retry && operation) || !name.trim() || !selected.length) return;
     locked.current = true; setBusy(true); setMessage("");
     const request = generation.current;
-    const attempt = retry || { key: crypto.randomUUID(), body: JSON.stringify({ branch_id: branch.id, name: name.trim(), scopes: selected }), status: "unknown" as const };
+    const attempt = retry || { key: crypto.randomUUID(), body: JSON.stringify({ branch_id: branch.id, name: name.trim(), profile, scopes: selected }), status: "unknown" as const };
     setOperation({ ...attempt, status: "unknown" });
     try {
       const result = await api<Issuance>("/admin/integration-credentials", {
@@ -113,7 +119,12 @@ export function CredentialCreate({ branch, businessName, onCreated }: {
       {operation.status === "not_found" && <button className="button secondary" disabled={busy} onClick={() => void submit(operation)}>Reenviar la misma operación</button>}
     </div> : <>
       <label>Nombre de la credencial<input maxLength={120} value={name} disabled={busy} onChange={event => setName(event.target.value)} /></label>
-      <fieldset disabled={busy}><legend>Permisos de la credencial adicional</legend><div className="scope-grid">{scopes.map(([scope, label]) => <label key={scope} className={scope === "inventory:write" ? "scope-sensitive" : ""}><input type="checkbox" checked={selected.includes(scope)} onChange={() => setSelected(current => current.includes(scope) ? current.filter(item => item !== scope) : [...current, scope])} /><span><strong>{label}</strong><small>{scope}</small></span></label>)}</div></fieldset>
+      <label>Perfil de integración<select value={profile} disabled={busy} onChange={event => {
+        const next = event.target.value as IntegrationProfile; setProfile(next);
+        setSelected(next === "restaurant_agent" ? agentScopes.map(([scope]) => scope) : scopes.map(([scope]) => scope).filter(scope => scope !== "inventory:write"));
+      }}><option value="restaurant_agent">Agente de restaurante (recomendado)</option><option value="generic">Integración general</option></select></label>
+      {profile === "restaurant_agent" && <small>Atiende consumidores con pedidos propios. Las notificaciones operativas usan una conexión separada.</small>}
+      <fieldset disabled={busy}><legend>Permisos de la credencial adicional</legend><div className="scope-grid">{(profile === "restaurant_agent" ? agentScopes : scopes).map(([scope, label]) => <label key={scope} className={scope === "inventory:write" ? "scope-sensitive" : ""}><input type="checkbox" checked={selected.includes(scope)} onChange={() => setSelected(current => current.includes(scope) ? current.filter(item => item !== scope) : [...current, scope])} /><span><strong>{label}</strong><small>{scope}</small></span></label>)}</div></fieldset>
       <button className="button primary" disabled={busy || name.trim().length < 2 || !selected.length} onClick={() => void submit()}><KeyRound /> Crear credencial adicional</button>
     </>}
     {message && <p role="status">{message}</p>}

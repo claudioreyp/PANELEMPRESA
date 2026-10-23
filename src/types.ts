@@ -54,7 +54,10 @@ export type Branch = {
   takeaway_enabled: boolean;
 };
 
+export type IntegrationProfile = "generic" | "restaurant_agent";
+
 export type IntegrationCredential = {
+  profile?: IntegrationProfile;
   id: number;
   business_id: number;
   branch_id: number;
@@ -77,6 +80,7 @@ export type IntegrationEndpoint = {
 };
 
 export type IntegrationPackage = {
+  profile?: IntegrationProfile;
   api_base_url: string;
   business_id: number;
   branch_id: number;
