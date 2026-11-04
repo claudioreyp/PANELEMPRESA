@@ -21,6 +21,7 @@ async function setup(page: Page, lost = false) {
     if (path === "/me") body = { role: "superadmin", user_id: "test-admin" };
     else if (path === "/admin/businesses") body = creations ? [business] : [];
     else if (path === "/admin/onboarding/restaurants" && route.request().method() === "POST") {
+      expect(route.request().postDataJSON().integration_profile).toBe("restaurant_agent");
       creations++;
       if (lost) return route.abort("failed");
       await new Promise((resolve) => setTimeout(resolve, 300));
@@ -47,6 +48,7 @@ async function fillRestaurant(page: Page) {
 test("full POS onboarding exposes only generic API data and one-time secrets", async ({ page }, info) => {
   const mock = await setup(page);
   await fillRestaurant(page);
+  await expect(page.getByLabel("Perfil de la conexión")).toHaveValue("restaurant_agent");
   await expect(page.getByLabel("Plan", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Crear restaurante y APIs" }).dblclick();
   await expect(page.getByText("Restaurante de prueba está listo", { exact: true })).toBeVisible();

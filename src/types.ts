@@ -74,12 +74,30 @@ export type IntegrationCredential = {
 };
 
 export type IntegrationEndpoint = {
-  method: "GET" | "POST" | "PATCH";
+  method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   url: string;
   scope: string;
+  required_scopes?: string[];
+  operation_id?: string;
+  description?: string;
+  read_only?: boolean;
+  idempotency?: "none" | "required" | "required_for_delivery_quote";
+  idempotency_location?: "header" | "body" | "path" | null;
+  idempotency_key_field?: string | null;
+  idempotency_replay?: string;
+  conversation_auth?: "none" | "headers" | "body";
+  conversation_auth_fields?: string[];
+  parameters?: Record<string, unknown>[];
+  request_body?: Record<string, unknown> | null;
+  responses?: Record<string, unknown>;
 };
 
 export type IntegrationPackage = {
+  package_version?: number;
+  api_contract_version?: string;
+  openapi_url?: string;
+  conversation_headers?: string[];
+  components?: { schemas: Record<string, unknown> };
   profile?: IntegrationProfile;
   api_base_url: string;
   business_id: number;

@@ -9,6 +9,7 @@ const scopes = [
   ["orders:read", "Consulta de pedidos"], ["orders:write", "Crear y actualizar pedidos"],
   ["payments:write", "Registrar comprobantes"], ["reservations:write", "Crear reservas"],
   ["events:read", "Notificaciones al cliente"], ["inventory:write", "Ajustes de inventario"],
+  ["events:deliver", "Entregar avisos del POS"],
 ] as const;
 const agentScopes = [
   ["menu:read", "Carta, precios y disponibilidad"], ["orders:read", "Pedidos del consumidor"],
@@ -121,10 +122,10 @@ export function CredentialCreate({ branch, businessName, onCreated }: {
       <label>Nombre de la credencial<input maxLength={120} value={name} disabled={busy} onChange={event => setName(event.target.value)} /></label>
       <label>Perfil de integración<select value={profile} disabled={busy} onChange={event => {
         const next = event.target.value as IntegrationProfile; setProfile(next);
-        setSelected(next === "restaurant_agent" ? agentScopes.map(([scope]) => scope) : scopes.map(([scope]) => scope).filter(scope => scope !== "inventory:write"));
+        setSelected(next === "restaurant_agent" ? agentScopes.map(([scope]) => scope) : scopes.map(([scope]) => scope).filter(scope => scope !== "inventory:write" && scope !== "events:deliver"));
       }}><option value="restaurant_agent">Agente de restaurante (recomendado)</option><option value="generic">Integración general</option></select></label>
       {profile === "restaurant_agent" && <small>Atiende consumidores con pedidos propios. Las notificaciones operativas usan una conexión separada.</small>}
-      <fieldset disabled={busy}><legend>Permisos de la credencial adicional</legend><div className="scope-grid">{(profile === "restaurant_agent" ? agentScopes : scopes).map(([scope, label]) => <label key={scope} className={scope === "inventory:write" ? "scope-sensitive" : ""}><input type="checkbox" checked={selected.includes(scope)} onChange={() => setSelected(current => current.includes(scope) ? current.filter(item => item !== scope) : [...current, scope])} /><span><strong>{label}</strong><small>{scope}</small></span></label>)}</div></fieldset>
+      <fieldset disabled={busy}><legend>Permisos de la credencial adicional</legend><div className="scope-grid">{(profile === "restaurant_agent" ? agentScopes : scopes).map(([scope, label]) => <label key={scope} className={scope === "inventory:write" || scope === "events:deliver" ? "scope-sensitive" : ""}><input type="checkbox" checked={selected.includes(scope)} onChange={() => setSelected(current => current.includes(scope) ? current.filter(item => item !== scope) : [...current, scope])} /><span><strong>{label}</strong><small>{scope}</small></span></label>)}</div></fieldset>
       <button className="button primary" disabled={busy || name.trim().length < 2 || !selected.length} onClick={() => void submit()}><KeyRound /> Crear credencial adicional</button>
     </>}
     {message && <p role="status">{message}</p>}

@@ -54,6 +54,26 @@ describe("restaurant onboarding helpers", () => {
     expect(password).toMatch(/[^a-zA-Z0-9]/);
   });
 
+  it("preserves tool contracts, lease requirements and shared schemas in the exported package", () => {
+    const contract = {
+      ...result.integration,
+      package_version: 2,
+      api_contract_version: "1.1.0",
+      conversation_headers: ["X-Agent-Conversation", "X-Agent-Lease"],
+      components: { schemas: { SelectionValidation: { type: "object" } } },
+      endpoints: { validate_selection: { method: "POST" as const, scope: "menu:read",
+        url: "https://api.escalar.test/api/v1/integrations/orders/validate-selection", read_only: true,
+        idempotency: "none" as const, required_scopes: ["menu:read"], conversation_auth: "headers" as const,
+        request_body: { content: { "application/json": { schema: { type: "object" } } } },
+        responses: { "200": { content: { "application/json": { schema: { $ref: "#/components/schemas/SelectionValidation" } } } } } } },
+    };
+    const exported = JSON.parse(buildIntegrationPackage(contract));
+    expect(exported.endpoints).toEqual(contract.endpoints);
+    expect(exported.components).toEqual(contract.components);
+    expect(exported.conversation_headers).toEqual(contract.conversation_headers);
+    expect(exported.authentication.value).toBe("Bearer <TOKEN_PRIVADO>");
+  });
+
   it("builds the credentials package with user-facing labels", () => {
     expect(buildRestaurantAccessPackage("https://pos.example", "owner@example.com", "Safe2026!Pass"))
       .toBe("Acceso a Escalar AI POS\nURL: https://pos.example\nUsuario: owner@example.com\nContraseña: Safe2026!Pass");

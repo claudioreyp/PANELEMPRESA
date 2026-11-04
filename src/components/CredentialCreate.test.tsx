@@ -94,4 +94,22 @@ it("lets an administrator deliberately create a generic integration with its pri
   expect(body.profile).toBe("generic");
   expect(body.scopes).toContain("events:read");
   expect(body.scopes).not.toContain("agent:state");
+  expect(body.scopes).not.toContain("events:deliver");
+});
+
+it("requires deliberate opt-in to POS notice delivery and removes it when returning to the agent profile", async () => {
+  open();
+  expect(screen.queryByRole("checkbox", { name: /Entregar avisos del POS/ })).not.toBeInTheDocument();
+  const profile = screen.getByLabelText("Perfil de integración");
+  fireEvent.change(profile, { target: { value: "generic" } });
+  const delivery = screen.getByRole("checkbox", { name: /Entregar avisos del POS/ });
+  expect(delivery).not.toBeChecked();
+  fireEvent.click(delivery); expect(delivery).toBeChecked();
+  fireEvent.change(profile, { target: { value: "restaurant_agent" } });
+  expect(screen.queryByRole("checkbox", { name: /Entregar avisos del POS/ })).not.toBeInTheDocument();
+  mocked.mockResolvedValueOnce(issued).mockResolvedValueOnce({ integration });
+  create(); await screen.findByText(issued.token);
+  const body = JSON.parse(mocked.mock.calls[0][1]!.body as string);
+  expect(body.profile).toBe("restaurant_agent");
+  expect(body.scopes).not.toContain("events:deliver");
 });
