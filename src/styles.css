@@ -127,6 +127,19 @@
 .credential-actions button { width:30px;height:30px;display:grid;place-items:center;border:0;border-radius:8px;background:var(--sand); }
 .credential-actions svg { width:15px; }
 .credential-create { display:grid;gap:13px;padding-top:15px;border-top:1px solid var(--line); }
+.deployment-package { display:grid;gap:14px;padding:18px;border:1px solid #a8c9ba;border-radius:16px;background:#f1faf5;margin-bottom:18px;min-width:0; }
+.deployment-package-heading { display:grid;gap:10px; }
+.deployment-package-heading h3,.deployment-package-heading p { margin:0; }
+.deployment-package p,.deployment-package small { line-height:1.5; }
+.deployment-package .button { white-space:normal; }
+.deployment-roles { display:grid;gap:14px;min-width:0; }
+.deployment-role { display:grid;gap:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff;min-width:0; }
+.deployment-role h4 { margin:0; }
+.deployment-role label { display:grid;gap:6px; }
+.deployment-role input,.deployment-role select { min-width:0;width:100%; }
+.deployment-role .credential-create { padding-top:0;border-top:0; }
+.deployment-role code,.deployment-package [role="status"] { overflow-wrap:anywhere; }
+.deployment-summary { padding:12px;border-radius:10px;background:var(--mint);color:var(--green); }
 .scope-grid { display:grid;grid-template-columns:1fr 1fr;gap:7px; }
 .scope-grid label { display:flex;align-items:flex-start;gap:8px;padding:9px;border-radius:10px;background:var(--sand); }
 .scope-grid label input { width:auto;margin-top:3px; }

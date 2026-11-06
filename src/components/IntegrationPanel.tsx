@@ -7,9 +7,11 @@ import { IntegrationPackageView } from "./IntegrationPackageView";
 import { AgentContextSummary } from "./AgentContextSummary";
 import { Empty, ErrorBox, Loading, Status } from "./ui";
 import { CredentialCreate } from "./CredentialCreate";
+import { ExistingDeploymentPackage } from "./ExistingDeploymentPackage";
 
 export function IntegrationPanel({ branches, businessName }: { branches: Branch[]; businessName: string }) {
   const [selectedId, setSelectedId] = useState(branches[0]?.id || 0);
+  const [packageProtected, setPackageProtected] = useState(false);
   const selected = branches.find((branch) => branch.id === selectedId) || branches[0];
 
   if (!selected) return <section className="panel integration-panel"><Empty title="Primero crea una sucursal" detail="Las credenciales del agente siempre pertenecen a una sucursal concreta." /></section>;
@@ -19,12 +21,13 @@ export function IntegrationPanel({ branches, businessName }: { branches: Branch[
       <div><span className="eyebrow">Escalar AI</span><h2>Integración del agente</h2><p>Credenciales, ubicación y pagos disponibles mediante las APIs de esta sede.</p></div>
       <Bot />
     </header>
-    <label className="branch-selector">Sucursal<select value={selected.id} onChange={(event) => setSelectedId(Number(event.target.value))}>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
-    <BranchIntegration key={selected.id} branch={selected} businessName={businessName} />
+    <label className="branch-selector">Sucursal<select value={selected.id} disabled={packageProtected} onChange={(event) => setSelectedId(Number(event.target.value))}>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
+    {packageProtected && <small>Cierra el preparador del paquete antes de cambiar de sucursal.</small>}
+    <BranchIntegration key={selected.id} branch={selected} businessName={businessName} onProtectionChange={setPackageProtected} />
   </section>;
 }
 
-function BranchIntegration({ branch, businessName }: { branch: Branch; businessName: string }) {
+function BranchIntegration({ branch, businessName, onProtectionChange }: { branch: Branch; businessName: string; onProtectionChange: (value: boolean) => void }) {
   const credentials = useResource(() => api<IntegrationCredential[]>(`/admin/integration-credentials?branch_id=${branch.id}`), [branch.id]);
   const actionLock = useRef(false);
   const packageRequest = useRef(0);
@@ -87,6 +90,7 @@ function BranchIntegration({ branch, businessName }: { branch: Branch; businessN
 
   return <div className="integration-layout">
     <div className="integration-column">
+      <ExistingDeploymentPackage branch={branch} businessName={businessName} credentials={credentials.data || []} onCreated={() => void credentials.refresh()} onProtectionChange={onProtectionChange} />
       <div className="integration-heading"><KeyRound /><div><h3>Credenciales por sucursal</h3><p>El token queda limitado a este negocio, esta sede y los permisos seleccionados.</p></div></div>
       {secret && <div className="secret-once"><strong>Token rotado: se muestra una sola vez</strong><code>{secret}</code><button className="button secondary" onClick={() => void copySecret()}><Copy /> Copiar</button><button className="button secondary" onClick={() => setSecret(null)}>Ocultar token</button><small>Es reutilizable. Cuando cierres o recargues la página, la API no podrá devolverlo nuevamente.</small></div>}
       {message && <div className="integration-success"><Check /> {message}</div>}
