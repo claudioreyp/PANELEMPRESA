@@ -1,4 +1,4 @@
-import type { IntegrationPackage } from "../types";
+import type { IntegrationPackage, PosNotificationsConnection } from "../types";
 
 export function slugifyName(value: string): string {
   return value
@@ -65,4 +65,23 @@ export function buildIntegrationPackage(integration: IntegrationPackage, token?:
     null,
     2,
   );
+}
+
+export function buildDeploymentPackage(
+  integration: IntegrationPackage,
+  token: string | undefined,
+  notifications: PosNotificationsConnection | null | undefined,
+): string | null {
+  if (!token || !notifications?.credential.token) return null;
+  const noticePackage = notifications.integration;
+  if (noticePackage.business_id !== integration.business_id
+    || noticePackage.branch_id !== integration.branch_id
+    || notifications.credential.business_id !== integration.business_id
+    || notifications.credential.branch_id !== integration.branch_id
+    || noticePackage.api_base_url !== integration.api_base_url) return null;
+  return JSON.stringify({
+    ...JSON.parse(buildIntegrationPackage(integration, token)),
+    deployment_bundle_version: 1,
+    pos_notifications: JSON.parse(buildIntegrationPackage(noticePackage, notifications.credential.token)),
+  }, null, 2);
 }

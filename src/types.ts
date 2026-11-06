@@ -91,6 +91,11 @@ export type IntegrationPackage = {
   endpoints: Record<string, IntegrationEndpoint>;
 };
 
+export type PosNotificationsConnection = {
+  credential: IntegrationCredential;
+  integration: IntegrationPackage;
+};
+
 export type RestaurantOnboardingResult = {
   business: Business;
   branch: Branch;
@@ -105,6 +110,7 @@ export type RestaurantOnboardingResult = {
   };
   credential: IntegrationCredential & { token: string };
   integration: IntegrationPackage;
+  pos_notifications?: PosNotificationsConnection | null;
 };
 
 export type BusinessOverview = {

@@ -40,6 +40,7 @@ export function BusinessesPage() {
   const [creating, setCreating] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [onboarding, setOnboarding] = useState<RestaurantOnboardingResult | null>(null);
+  const [completePackageRequested, setCompletePackageRequested] = useState(false);
   const [ownerCredentials, setOwnerCredentials] = useState<{ username: string; password: string } | null>(null);
   const [showOwnerPassword, setShowOwnerPassword] = useState(false);
   const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
@@ -90,6 +91,7 @@ export function BusinessesPage() {
           owner_password: form.owner_password,
           credential_name: `Integracion - ${form.branch_name.trim()}`,
           integration_profile: form.integration_profile,
+          create_pos_notifications: form.integration_profile === "restaurant_agent",
         }),
       });
       setOwnerCredentials({
@@ -99,6 +101,7 @@ export function BusinessesPage() {
       setCreating(false);
       setForm(initialForm);
       setOnboarding(result);
+      setCompletePackageRequested(form.integration_profile === "restaurant_agent");
       setToast({
         message: "Restaurante, acceso al POS y APIs creados correctamente.",
         tone: "success",
@@ -121,8 +124,9 @@ export function BusinessesPage() {
   }
 
   function closeOnboarding() {
-    if (!window.confirm("La contraseña y el token secreto no podrán volver a consultarse. ¿Confirmas que ya guardaste ambos accesos?")) return;
+    if (!window.confirm("La contraseña y los tokens secretos no podrán volver a consultarse. ¿Confirmas que ya guardaste los accesos?")) return;
     setOnboarding(null);
+    setCompletePackageRequested(false);
     setOwnerCredentials(null);
   }
 
@@ -203,7 +207,7 @@ export function BusinessesPage() {
         <code>{onboarding.credential.token}</code>
         <button className="button secondary" onClick={() => void copy(onboarding.credential.token, "Token copiado.")}><Copy /> Copiar token</button>
       </section>
-      <IntegrationPackageView integration={onboarding.integration} token={onboarding.credential.token} copy={copy} />
+      <IntegrationPackageView integration={onboarding.integration} token={onboarding.credential.token} copy={copy} completeDeployment={completePackageRequested} posNotifications={onboarding.pos_notifications} />
       <button className="button primary large" onClick={closeOnboarding}>Ya guardé el acceso y las APIs, cerrar</button>
     </OnboardingDialog>}
 
