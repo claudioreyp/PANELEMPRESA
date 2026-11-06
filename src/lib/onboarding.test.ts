@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   buildIntegrationPackage,
+  buildDeploymentPackage,
   buildRestaurantAccessPackage,
   generateSecurePassword,
   slugifyName,
 } from "./onboarding";
-import type { RestaurantOnboardingResult } from "../types";
+import type { PosNotificationsConnection, RestaurantOnboardingResult } from "../types";
 
 const result = {
   business: { id: 12 },
@@ -43,6 +44,33 @@ describe("restaurant onboarding helpers", () => {
     expect(packageData.branch_id).toBe(34);
     expect(packageData).not.toHaveProperty("environment");
     expect(buildIntegrationPackage(result.integration)).not.toContain(result.credential.token);
+  });
+
+  it("copies both scoped connections with distinct authentication in one deployment package", () => {
+    const notifications = {
+      credential: { business_id: 12, branch_id: 34, token: "notice-only-secret" },
+      integration: { ...result.integration, profile: "generic", scopes: ["menu:read", "orders:read", "events:read", "events:deliver"] },
+    } as PosNotificationsConnection;
+    const packet = JSON.parse(buildDeploymentPackage(result.integration, result.credential.token, notifications)!);
+    expect(packet.deployment_bundle_version).toBe(1);
+    expect(packet.authentication.value).toBe(`Bearer ${result.credential.token}`);
+    expect(packet.pos_notifications.authentication.value).toBe("Bearer notice-only-secret");
+    expect(packet.pos_notifications.scopes).toEqual(["menu:read", "orders:read", "events:read", "events:deliver"]);
+    expect(packet.pos_notifications.branch_id).toBe(34);
+    expect(packet.endpoints).toEqual(result.integration.endpoints);
+    expect(packet.pos_notifications).not.toHaveProperty("credential");
+  });
+
+  it("does not present a partial or cross-branch connection as a complete deployment package", () => {
+    const notifications = {
+      credential: { business_id: 12, branch_id: 34, token: "notice-only-secret" },
+      integration: { ...result.integration },
+    } as PosNotificationsConnection;
+    expect(buildDeploymentPackage(result.integration, undefined, notifications)).toBeNull();
+    expect(buildDeploymentPackage(result.integration, result.credential.token, null)).toBeNull();
+    expect(buildDeploymentPackage(result.integration, result.credential.token, { ...notifications, credential: { ...notifications.credential, token: undefined } })).toBeNull();
+    expect(buildDeploymentPackage(result.integration, result.credential.token, { ...notifications, integration: { ...notifications.integration, branch_id: 35 } })).toBeNull();
+    expect(buildDeploymentPackage(result.integration, result.credential.token, { ...notifications, credential: { ...notifications.credential, business_id: 13 } })).toBeNull();
   });
 
   it("generates strong passwords for new restaurant users", () => {

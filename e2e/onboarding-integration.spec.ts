@@ -4,6 +4,10 @@ const business = { id: 11, name: "Restaurante de prueba", slug: "restaurante-de-
 const branch = { id: 21, business_id: 11, name: "Principal", slug: "principal", active: true, accepted_payment_methods: ["cash"], delivery_fee: 0 };
 const credential = { id: 31, business_id: 11, branch_id: 21, name: "Integración principal", token_prefix: "esc_test", scopes: ["menu:read"], active: true, last_used_at: null };
 const integration = { api_base_url: "https://api.example.test/api/v1", business_id: 11, branch_id: 21, authentication: "bearer", authorization_header: "Authorization", write_idempotency_header: "Idempotency-Key", scopes: ["menu:read"], endpoints: { menu: { method: "GET", scope: "menu:read", url: "https://api.example.test/api/v1/integrations/context/menu" } } };
+const posNotifications = {
+  credential: { ...credential, id: 32, token: "notice-only-token", scopes: ["menu:read", "orders:read", "events:read", "events:deliver"] },
+  integration: { ...integration, scopes: ["menu:read", "orders:read", "events:read", "events:deliver"], endpoints: { events: { method: "GET", scope: "events:read", url: "https://api.example.test/api/v1/integrations/events" } } },
+};
 
 const agentContext = {
   branch_id: 21, agent: { name: "Ana" },
@@ -12,7 +16,7 @@ const agentContext = {
   delivery: { enabled: true, mode: "quote", fee: null, fee_status: "pending_quote", minimum_order_amount: null, free_delivery_threshold: null, bands: [], policy: null },
 };
 
-async function setup(page: Page, lost = false) {
+async function setup(page: Page, lost = false, incomplete = false) {
   let creations = 0;
   await page.addInitScript(() => localStorage.setItem("impulsa.adminAuthMode", "dev"));
   await page.route("**/api/v1/**", async (route) => {
@@ -22,10 +26,11 @@ async function setup(page: Page, lost = false) {
     else if (path === "/admin/businesses") body = creations ? [business] : [];
     else if (path === "/admin/onboarding/restaurants" && route.request().method() === "POST") {
       expect(route.request().postDataJSON().integration_profile).toBe("restaurant_agent");
+      expect(route.request().postDataJSON().create_pos_notifications).toBe(true);
       creations++;
       if (lost) return route.abort("failed");
       await new Promise((resolve) => setTimeout(resolve, 300));
-      body = { business, branch, owner_access: { email: "owner@example.test" }, credential: { ...credential, token: "test-only-token" }, integration };
+      body = { business, branch, owner_access: { email: "owner@example.test" }, credential: { ...credential, token: "test-only-token" }, integration, pos_notifications: incomplete ? null : posNotifications };
     } else if (path === "/admin/onboarding/restaurants/status") body = { status: "created", business };
     else if (path.endsWith("/overview")) body = { business, branches: 1, users: 1, orders: 0, sales: 0 };
     else if (path === "/branches") body = [branch];
@@ -45,7 +50,7 @@ async function fillRestaurant(page: Page) {
   await page.getByLabel("Usuario (correo)").fill("owner@example.test");
 }
 
-test("full POS onboarding exposes only generic API data and one-time secrets", async ({ page }, info) => {
+test("full POS onboarding copies both scoped connections once without storing secrets", async ({ page }, info) => {
   const mock = await setup(page);
   await fillRestaurant(page);
   await expect(page.getByLabel("Perfil de la conexión")).toHaveValue("restaurant_agent");
@@ -55,15 +60,33 @@ test("full POS onboarding exposes only generic API data and one-time secrets", a
   expect(mock.creations()).toBe(1);
   await expect(page.getByRole("heading", { name: "APIs privadas del restaurante" })).toBeVisible();
   await expect(page.getByText("Usuario y contraseña de CLIENTES", { exact: true })).toBeVisible();
-  expect(await page.locator("body").innerText()).not.toMatch(/n8n|workflow|superpro|básico/i);
-  expect(await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage))).not.toContain("test-only-token");
+  expect(await page.locator("body").innerText()).not.toMatch(/workflow|superpro|básico/i);
+  await page.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (value: string) => { Object.defineProperty(window, "copiedOnboardingPackage", { configurable: true, value }); } } }));
+  await expect(page.getByRole("button", { name: "Copiar paquete completo para n8n", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Copiar paquete de APIs", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Copiar paquete completo para n8n", exact: true }).click();
+  const copied = JSON.parse(await page.evaluate(() => (window as Window & { copiedOnboardingPackage: string }).copiedOnboardingPackage));
+  expect(copied).toMatchObject({ deployment_bundle_version: 1, business_id: 11, branch_id: 21, authentication: { value: "Bearer test-only-token" }, pos_notifications: { business_id: 11, branch_id: 21, authentication: { value: "Bearer notice-only-token" }, scopes: posNotifications.integration.scopes } });
+  const stored = await page.evaluate(() => JSON.stringify(localStorage) + JSON.stringify(sessionStorage));
+  expect(stored).not.toContain("test-only-token");
+  expect(stored).not.toContain("notice-only-token");
   await page.screenshot({ path: `test-results/onboarding-${info.project.name}.png`, fullPage: true });
   page.on("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Ya guardé el acceso y las APIs, cerrar" }).click();
+  await expect(page.getByText("notice-only-token", { exact: true })).toHaveCount(0);
   await page.goto("/negocios/11");
   await page.getByRole("button", { name: "Ver APIs", exact: true }).click();
   await expect(page.getByText("El token no puede recuperarse.", { exact: false })).toBeVisible();
   await expect(page.getByText("test-only-token", { exact: true })).toHaveCount(0);
+});
+
+test("an incomplete onboarding response never copies a partial deployment or creates credentials again", async ({ page }) => {
+  const mock = await setup(page, false, true);
+  await fillRestaurant(page);
+  await page.getByRole("button", { name: "Crear restaurante y APIs" }).click();
+  await expect(page.getByRole("button", { name: "Copiar paquete completo para n8n", exact: true })).toBeDisabled();
+  await expect(page.getByText(/no se emitirán otras credenciales automáticamente/)).toBeVisible();
+  expect(mock.creations()).toBe(1);
 });
 
 for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
